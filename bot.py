@@ -28,6 +28,7 @@ class NyxBot(commands.Bot):
             await self.load_extension("cogs.admin")
             await self.load_extension("cogs.scheduler")
             await self.load_extension("cogs.chatbot")
+            await self.load_extension("cogs.lore_scraper")
             print("✅ All cogs loaded successfully.")
         except Exception as e:
             print(f"❌ Failed to load cogs: {e}")
@@ -40,8 +41,12 @@ async def on_ready():
     print(f"✅ Logged in as {bot.user}")
     print(f"🤖 Bot is ready! Connected to {len(bot.guilds)} server(s)")
     try:
-        await bot.tree.sync()
-        print("✅ Slash commands synced successfully")
+        # Sync per-guild for instant propagation
+        for guild in bot.guilds:
+            bot.tree.copy_global_to(guild=guild)
+            await bot.tree.sync(guild=guild)
+            print(f"  Synced to {guild.name}")
+        print(f"✅ Slash commands synced to {len(bot.guilds)} guild(s)")
     except Exception as e:
         print(f"⚠️ Failed to sync slash commands: {e}")
 

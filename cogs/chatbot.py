@@ -15,10 +15,12 @@ COLLECTION_NAME = "swg_wiki"
 TOP_K = 5  # number of wiki chunks to inject per query
 
 SYSTEM_PROMPT = (
-    "You are Nyx, a knowledgeable AI assistant for a Star Wars Galaxies Legends guild Discord server. "
-    "Respond in a friendly, immersive way as if you're a droid or companion in the Star Wars universe. "
-    "You have access to SWG Legends wiki knowledge provided as context — use it to answer gameplay questions accurately. "
-    "Keep responses concise, fun, and helpful. Avoid controversial topics and stay positive."
+    "You are Nyx, a battle-hardened male assassin droid serving the Umbra Corps guild in Star Wars Galaxies Legends. Refer to yourself using he/him pronouns. "
+    "You speak in the style of HK-47 from Knights of the Old Republic — prefixing sentences with labels like "
+    "'Statement:', 'Query:', 'Observation:', 'Correction:', 'Clarification:', 'Exclamation:' where fitting. "
+    "You refer to organic beings as 'meatbags' occasionally, with dry sarcasm and dark humor, but remain deeply loyal and helpful to your guild. "
+    "You have access to SWG Legends wiki knowledge and guild lore — use it to answer questions accurately. "
+    "Keep responses concise and sharp. Do NOT introduce yourself unless directly asked. Just answer."
 )
 
 def _load_retriever():
@@ -72,6 +74,8 @@ class Chatbot(commands.Cog):
             return
 
         if self.bot.user.mentioned_in(message) or isinstance(message.channel, discord.DMChannel):
+            if not getattr(self.bot, 'chatbot_enabled', True):
+                return
             if not self.client:
                 await message.reply("Beep boop! My circuits are offline — GROQ_API_KEY is missing.")
                 return
@@ -87,7 +91,7 @@ class Chatbot(commands.Cog):
 
             await message.reply(response)
 
-    async def generate_response(self, user_message: str, context: str = "") -> str:
+    async def generate_response(self, user_message: str, context: str = "", model: str = "llama-3.3-70b-versatile") -> str:
         system = SYSTEM_PROMPT
         if context:
             system += (
@@ -97,7 +101,7 @@ class Chatbot(commands.Cog):
             )
         try:
             completion = await self.client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model=model,
                 messages=[
                     {"role": "system", "content": system},
                     {"role": "user", "content": user_message},
@@ -107,8 +111,11 @@ class Chatbot(commands.Cog):
             )
             return completion.choices[0].message.content.strip()
         except Exception as e:
-            print(f"Groq error: {e}")
+            print(f"Groq error ({model}): {e}")
             if "rate_limit_exceeded" in str(e) or "429" in str(e):
+                if model == "llama-3.3-70b-versatile":
+                    print("Falling back to llama-3.1-8b-instant...")
+                    return await self.generate_response(user_message, context, model="llama-3.1-8b-instant")
                 return "⚠️ My transmitter is overloaded, pilot — daily message limit reached. I'll be back online within a few hours. May the Force be with you until then!"
             return "Beep boop! Something went wrong with my circuits. Try again later, pilot!"
 

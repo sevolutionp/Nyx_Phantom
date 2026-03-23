@@ -14,6 +14,23 @@ class Admin(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.start_time = time.time()
+        self.bot.chatbot_enabled = True
+
+    @app_commands.command(name="nyx-toggle", description="Enable or disable Nyx's chat responses (Owner & Leadership Only)")
+    async def nyx_toggle(self, interaction: discord.Interaction):
+        user_roles = [role.name for role in interaction.user.roles]
+        if interaction.user.id != OWNER_ID and not any(role in self.ALLOWED_ROLES for role in user_roles):
+            await interaction.response.send_message("❌ You don't have permission to use this command.", ephemeral=True)
+            return
+
+        self.bot.chatbot_enabled = not self.bot.chatbot_enabled
+        state = "enabled" if self.bot.chatbot_enabled else "disabled"
+        await interaction.response.send_message(f"✅ Nyx chat responses **{state}**.", ephemeral=True)
+        if self.bot.chatbot_enabled:
+            await interaction.channel.send("*Nyx is back online. Statement: Recharge cycle complete. I am ready to serve... and perhaps terminate something, master.*")
+        else:
+            await interaction.channel.send("*Nyx has gone offline to recharge. He'll be back soon, meatbags.*")
+        print(f"Chatbot toggled: {state}")
 
     ALLOWED_ROLES = ["Leader", "Militia", "Officer", "Senior Officer", "Council Member"]
 
