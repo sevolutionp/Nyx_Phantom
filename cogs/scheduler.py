@@ -33,56 +33,56 @@ class Scheduler(commands.Cog):
 
 
     def schedule_tasks(self):
-        # Monday 9:00 UTC
+        # Monday 09:00 UTC / 4:00 AM EST / 5:00 AM EDT
         self.scheduler.add_job(
             self.send_scheduled_message,
             CronTrigger(day_of_week='mon', hour=9, minute=0, timezone=timezone.utc),
             args=["🚀 Motivation:", "Motivation Monday", "New week, new goals! Let's get started!", discord.Color.blue(), "🚀"]
         )
 
-        # Friday 15:30 UTC
+        # Friday 15:30 UTC / 10:30 AM EST / 11:30 AM EDT
         self.scheduler.add_job(
             self.send_scheduled_message,
             CronTrigger(day_of_week='fri', hour=15, minute=30, timezone=timezone.utc),
             args=["🎉 Reminder:", "Weekend Countdown", "The weekend is almost here! Hang in there!", discord.Color.purple(), "🎉"]
         )
 
-        # Saturday 9:00 UTC
+        # Saturday 09:00 UTC / 4:00 AM EST / 5:00 AM EDT
         self.scheduler.add_job(
             self.send_scheduled_message,
             CronTrigger(day_of_week='sat', hour=9, minute=0, timezone=timezone.utc),
             args=["🔥 Fun Reminder:", "Saturday Fun!", "Enjoy your weekend and take a break!", discord.Color.red(), "🔥"]
         )
 
-        # Sunday 17:30 UTC
+        # Sunday 17:30 UTC / 12:30 PM EST / 1:30 PM EDT
         self.scheduler.add_job(
             self.send_scheduled_message,
             CronTrigger(day_of_week='sun', hour=17, minute=30, timezone=timezone.utc),
             args=["☀️ Reminder:", "Sunday Reminder", "Good Afternoon! It's Sunday afternoon, make sure to get rest for Monday!", discord.Color.gold(), "☀️"]
         )
 
-        # Tuesday 6:00 UTC (10 AM GMT / 6 AM EST)
+        # Tuesday 06:00 UTC / 1:00 AM EST / 2:00 AM EDT
         self.scheduler.add_job(
             self.send_space_message,
             CronTrigger(day_of_week='tue', hour=6, minute=0, timezone=timezone.utc),
             args=["***Incoming Transmission from Squadron HQ, Crimson Hollow***", "Happy Chewsday Pilots!", "As a reminder, space PvP starts at 7PM UTC. Prepare to group up and head to Deep Space!", discord.Color.dark_red(), "<:TieDefender:682583044783341570>", "images/abyssal_squadron_banner.jpg"]
         )
 
-        # Tuesday 15:00 UTC (7 PM GMT / 3 PM EST)
+        # Tuesday 15:00 UTC / 10:00 AM EST / 11:00 AM EDT
         self.scheduler.add_job(
             self.send_space_message,
             CronTrigger(day_of_week='tue', hour=15, minute=0, timezone=timezone.utc),
             args=["***Incoming Transmission from Squadron HQ, Crimson Hollow***", "Chewsday Night PvP!", "We're about to launch! Group up and head to Deep Space!", discord.Color.dark_red(), "<:TieDefender:682583044783341570>", "images/abyssal_squadron_banner.jpg"]
         )
 
-        # Friday 10:00 UTC
+        # Friday 10:00 UTC / 5:00 AM EST / 6:00 AM EDT
         self.scheduler.add_job(
             self.send_space_message,
             CronTrigger(day_of_week='fri', hour=10, minute=0, timezone=timezone.utc),
             args=["***Incoming Transmission from Squadron HQ, Crimson Hollow***", "Friday Night Fights Incoming!", "US pilots! PvP kicks off tonight at 7PM UTC — prepare for deployment!", discord.Color.dark_red(), "<:TieDefender:682583044783341570>", "images/abyssal_squadron_banner.jpg"]
         )
 
-        # Friday 19:00 UTC (7 PM EST / 11 PM GMT)
+        # Friday 19:00 UTC / 2:00 PM EST / 3:00 PM EDT
         self.scheduler.add_job(
             self.send_space_message,
             CronTrigger(day_of_week='fri', hour=19, minute=0, timezone=timezone.utc),

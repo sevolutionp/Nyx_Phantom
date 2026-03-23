@@ -108,6 +108,8 @@ class Chatbot(commands.Cog):
             return completion.choices[0].message.content.strip()
         except Exception as e:
             print(f"Groq error: {e}")
+            if "rate_limit_exceeded" in str(e) or "429" in str(e):
+                return "⚠️ My transmitter is overloaded, pilot — daily message limit reached. I'll be back online within a few hours. May the Force be with you until then!"
             return "Beep boop! Something went wrong with my circuits. Try again later, pilot!"
 
 async def setup(bot):
