@@ -5,8 +5,11 @@ A Discord bot for Star Wars Galaxies Legends guilds — featuring AI chat powere
 ## Features
 
 - 🤖 **AI Chatbot**: Mention Nyx or DM it for SWG Legends-accurate answers powered by Groq (Llama 3.3 70B) + RAG wiki knowledge
+- 🗡️ **HK-47 Personality**: Nyx speaks in the style of HK-47 from KOTOR — "Statement:", "Query:", "Observation:" prefixes, dry sarcasm, and the occasional "meatbag"
 - 📅 **Automated Scheduling**: PvP event reminders, motivational messages, and weekly announcements sent on a UTC schedule
 - 🗺️ **Wiki-Powered Knowledge**: Scraped and indexed SWG Legends wiki for accurate gameplay answers (professions, planets, crafting, space PvP, etc.)
+- 📚 **Guild Lore Indexing**: `/scrape-lore` indexes any Discord channel (messages + PDF attachments) into Nyx's knowledge base
+- 🔇 **Toggle On/Off**: `/nyx-toggle` silences Nyx with a recharge message and wakes him back up when ready
 - 👑 **Leadership Controls**: Role-based permissions for bot management
 - 🔄 **Hot Reload**: Reload the scheduler without restarting the bot
 - 📊 **Status Monitoring**: Check bot health and uptime via `/status`
@@ -69,10 +72,14 @@ python bot.py
 | Command | Permission | Description |
 |---|---|---|
 | `/status` | Everyone | Check bot latency, uptime, and server count |
+| `/nyx-toggle` | Owner & Leadership | Enable or disable Nyx's chat responses |
+| `/scrape-lore` | Owner & Leadership | Index the current channel's messages and PDFs into Nyx's knowledge base |
 | `/reload` | Owner & Leadership | Reload the scheduler cog without restarting |
 
 ### Chatbot
 Mention `@Nyx Phantom` or send a DM — Nyx will answer using SWG Legends wiki knowledge where available, falling back to Llama 3.3 70B general knowledge.
+
+When the Groq daily token limit is hit, Nyx automatically falls back to `llama-3.1-8b-instant` to stay online.
 
 ### Scheduled Messages (UTC)
 | Time | Message |
@@ -91,9 +98,10 @@ Mention `@Nyx Phantom` or send a DM — Nyx will answer using SWG Legends wiki k
 ```
 ├── bot.py              # Main bot entry point
 ├── cogs/
-│   ├── admin.py        # Slash commands (/status, /reload)
+│   ├── admin.py        # Slash commands (/status, /reload, /nyx-toggle)
 │   ├── scheduler.py    # Automated message scheduling
-│   └── chatbot.py      # AI chatbot with RAG retrieval
+│   ├── chatbot.py      # AI chatbot with RAG retrieval + HK-47 personality
+│   └── lore_scraper.py # /scrape-lore — indexes Discord channels + PDFs
 ├── scraper.py          # SWG Legends wiki scraper
 ├── build_index.py      # Embeds wiki chunks into ChromaDB
 ├── images/             # Images used in scheduled messages
