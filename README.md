@@ -1,91 +1,113 @@
 # Nyx Phantom Discord Bot
 
-A Discord bot for automated community messaging, scheduling, and interactive chat, designed for Star Wars Galaxies gaming guilds.
+A Discord bot for Star Wars Galaxies Legends guilds — featuring AI chat powered by the SWG Legends wiki, automated event reminders, and community scheduling.
 
 ## Features
 
-- 📅 **Automated Scheduling**: Send messages at specific times using UTC for DST-safe timing
+- 🤖 **AI Chatbot**: Mention Nyx or DM it for SWG Legends-accurate answers powered by Groq (Llama 3.3 70B) + RAG wiki knowledge
+- 📅 **Automated Scheduling**: PvP event reminders, motivational messages, and weekly announcements sent on a UTC schedule
+- 🗺️ **Wiki-Powered Knowledge**: Scraped and indexed SWG Legends wiki for accurate gameplay answers (professions, planets, crafting, space PvP, etc.)
 - 👑 **Leadership Controls**: Role-based permissions for bot management
-- 🤖 **AI Chatbot**: Respond to mentions or DMs with Star Wars Galaxies-themed advice and conversation
-- 🎯 **Gaming Community Focus**: PvP event reminders, motivational messages, and SWG lore
-- 🔄 **Hot Reload**: Reload scheduler without restarting the bot
-- 📊 **Status Monitoring**: Check bot health and uptime
+- 🔄 **Hot Reload**: Reload the scheduler without restarting the bot
+- 📊 **Status Monitoring**: Check bot health and uptime via `/status`
+- 🖥️ **Multi-Server Support**: Runs in both a test server and a live guild server simultaneously
 
 ## Setup
 
-### 1. Clone and Install Dependencies
+### 1. Clone and install dependencies
 
 ```bash
+git clone https://github.com/sevolutionp/Nyx_Phantom.git
+cd Nyx_Phantom
 pip install -r requirements.txt
 ```
 
-### 2. Create Environment Configuration
-
-Copy `.env.example` to `.env` and fill in your values:
+### 2. Configure environment
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` with your bot credentials:
-- `DISCORD_TOKEN`: Your bot token from Discord Developer Portal
-- `BOT_OWNER_ID`: Your Discord user ID
-- `CHANNEL_ID`: Channel ID for general messages
-- `SPACE_ID`: Channel ID for space/gaming messages
+Edit `.env` with your values:
 
-### 3. Run the Bot
+| Variable | Description |
+|---|---|
+| `DISCORD_TOKEN` | Bot token from [Discord Developer Portal](https://discord.com/developers/applications) |
+| `BOT_OWNER_ID` | Your Discord user ID |
+| `GROQ_API_KEY` | Free API key from [console.groq.com](https://console.groq.com) |
+| `TEST_CHANNEL_ID` | Channel ID for test/dev server |
+| `GUILD_CHANNEL_ID` | Channel ID for guild general chat |
+| `SPACE_ID` | Channel ID for space PvP announcements |
+| `CF_CLEARANCE` | Cloudflare cookie for wiki scraping (see below) |
+
+### 3. Build the wiki knowledge base (optional but recommended)
+
+This scrapes the SWG Legends wiki and builds a local vector index so Nyx can answer gameplay questions accurately.
+
+**Get your `cf_clearance` cookie:**
+1. Visit `https://swglegends.com/wiki/index.php?title=Home` in your browser
+2. Open DevTools (`F12`) → Application → Cookies → `swglegends.com`
+3. Copy the `cf_clearance` value into your `.env`
+
+**Run the scraper and indexer:**
+```bash
+python scraper.py       # crawls the wiki (~868 pages, takes a few minutes)
+python build_index.py   # builds the ChromaDB vector index
+```
+
+> Note: The `cf_clearance` cookie expires every ~24 hours. Re-run `scraper.py` + `build_index.py` to refresh the knowledge base.
+
+### 4. Run the bot
 
 ```bash
 python bot.py
 ```
 
-**Note**: The chatbot uses a local AI model (DistilGPT-2) which downloads on first run (~1GB). Ensure you have a stable internet connection and sufficient disk space.
-
 ## Commands
 
-### Admin Commands (Leadership Only)
-- `/reload` - Reload the scheduler cog
-- `/status` - Check bot status and uptime
+### Slash Commands
+| Command | Permission | Description |
+|---|---|---|
+| `/status` | Everyone | Check bot latency, uptime, and server count |
+| `/reload` | Owner & Leadership | Reload the scheduler cog without restarting |
 
 ### Chatbot
-- Mention the bot (e.g., "@Nyx Phantom what's the best PvP ship?") or DM it for SWG-themed responses
-- Powered by a local AI model (free, no API keys needed), responds with tips, lore, and fun interactions
+Mention `@Nyx Phantom` or send a DM — Nyx will answer using SWG Legends wiki knowledge where available, falling back to Llama 3.3 70B general knowledge.
 
-### Scheduled Messages
-The bot automatically sends messages at these UTC times:
-- **Monday 09:00**: Motivation Monday
-- **Friday 15:30**: Weekend countdown
-- **Saturday 09:00**: Weekend fun reminder
-- **Sunday 17:30**: Sunday reminder
-- **Tuesday 06:00 & 15:00**: Chewsday PvP reminders
-- **Friday 10:00 & 19:00**: Friday Night Fights reminders
+### Scheduled Messages (UTC)
+| Time | Message |
+|---|---|
+| Monday 09:00 | Motivation Monday |
+| Tuesday 06:00 | Chewsday PvP reminder |
+| Tuesday 15:00 | Chewsday PvP launch |
+| Friday 10:00 | Friday Night Fights warning |
+| Friday 15:30 | Weekend countdown |
+| Friday 19:00 | Friday Night Fights launch |
+| Saturday 09:00 | Weekend reminder |
+| Sunday 17:30 | Sunday afternoon reminder |
 
-## Development
+## Project Structure
 
-### Project Structure
 ```
-├── bot.py              # Main bot file
+├── bot.py              # Main bot entry point
 ├── cogs/
-│   ├── admin.py        # Admin commands
-│   ├── scheduler.py    # Message scheduling
-│   └── chatbot.py      # AI chatbot functionality
-├── images/             # Message attachments
+│   ├── admin.py        # Slash commands (/status, /reload)
+│   ├── scheduler.py    # Automated message scheduling
+│   └── chatbot.py      # AI chatbot with RAG retrieval
+├── scraper.py          # SWG Legends wiki scraper
+├── build_index.py      # Embeds wiki chunks into ChromaDB
+├── images/             # Images used in scheduled messages
 ├── requirements.txt    # Python dependencies
-└── .env.example        # Environment template
+└── .env.example        # Environment variable template
 ```
-
-### Adding New Features
-1. Create new cog files in the `cogs/` directory
-2. Load them in `bot.py`'s `setup_hook()`
-3. Use slash commands with `@app_commands.command()` or listeners for events
 
 ## Contributing
 
-1. Test your changes locally
-2. Ensure proper error handling
-3. Follow the existing code style
-4. Update this README if needed
+1. Fork the repo and create a feature branch
+2. Test your changes locally with a dev Discord server
+3. Ensure proper error handling
+4. Open a Pull Request with a clear description of the change
 
 ## License
 
-This project is open source. Feel free to use and modify as needed.
+Open source — free to use and modify.
