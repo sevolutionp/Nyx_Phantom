@@ -20,3 +20,10 @@ Thumbs.db
 
 # Ignore VS Code settings
 .vscode/
+
+# Ignore scraped wiki data and vector DB (large, user-specific)
+wiki_data.json
+chroma_db/
+
+# Ignore venv (root level)
+.venv/
