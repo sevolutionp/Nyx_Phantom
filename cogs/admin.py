@@ -55,6 +55,58 @@ class Admin(commands.Cog):
 
         await interaction.followup.send(embed=embed)
 
+    @app_commands.command(name="test-schedule", description="Fire a sample scheduled message here (Owner only)")
+    async def test_schedule(self, interaction: discord.Interaction):
+        if interaction.user.id != OWNER_ID:
+            await interaction.response.send_message("❌ Owner only.", ephemeral=True)
+            return
+
+        await interaction.response.send_message("📨 Sending test messages...", ephemeral=True)
+
+        scheduler_cog = self.bot.cogs.get("Scheduler")
+        if not scheduler_cog:
+            await interaction.followup.send("⚠️ Scheduler cog not loaded.", ephemeral=True)
+            return
+
+        # Override channel targets temporarily to fire into the current channel
+        original_method_gen = scheduler_cog.send_scheduled_message
+        original_method_space = scheduler_cog.send_space_message
+
+        async def _test_general(*args, **kwargs):
+            from cogs.scheduler import _now_timezones
+            _, title, message, color, emoji = args
+            embed = discord.Embed(title=title, description=f"{message}\n\n{_now_timezones()}", color=color)
+            embed.set_footer(text="📅 Scheduled Notification  [TEST]")
+            sent = await interaction.channel.send(embed=embed)
+            await sent.add_reaction(emoji)
+
+        async def _test_space(*args, **kwargs):
+            from cogs.scheduler import _event_countdown
+            _, title, message, color, emoji, image_path, event_hour_utc, event_min_utc = args
+            countdown_line = _event_countdown(event_hour_utc, event_min_utc)
+            filename = image_path.split('/')[-1]
+            embed = discord.Embed(title=title, description=f"{message}\n\n{countdown_line}", color=color)
+            embed.set_footer(text="📅 Scheduled Notification  [TEST]")
+            embed.set_image(url=f"attachment://{filename}")
+            file = discord.File(image_path, filename=filename)
+            sent = await interaction.channel.send(
+                content="***Incoming Transmission from Squadron HQ, Crimson Hollow***",
+                embed=embed, file=file
+            )
+            await sent.add_reaction(emoji)
+
+        await _test_general(
+            "🚀 Motivation:", "Motivation Monday", "New week, new goals! Let's get started!",
+            discord.Color.blue(), "🚀"
+        )
+        await _test_space(
+            "***Incoming Transmission from Squadron HQ, Crimson Hollow***",
+            "Happy Chewsday Pilots!",
+            "As a reminder, space PvP starts at 7PM UTC. Prepare to group up and head to Deep Space!",
+            discord.Color.dark_red(), "<:TieDefender:682583044783341570>",
+            "images/abyssal_squadron_banner.jpg", 19, 0
+        )
+
     @app_commands.command(name="reload", description="Reload scheduler cog (Owner & Leadership Roles Only)")
     async def reload(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)  # ✅ Correct way to defer
