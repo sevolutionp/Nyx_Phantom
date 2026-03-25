@@ -74,7 +74,9 @@ class Chatbot(commands.Cog):
             return
 
         if self.bot.user.mentioned_in(message) or isinstance(message.channel, discord.DMChannel):
-            if not getattr(self.bot, 'chatbot_enabled', True):
+            guild_id = message.guild.id if message.guild else None
+            enabled = self.bot.chatbot_enabled.get(guild_id, True) if hasattr(self.bot, 'chatbot_enabled') else True
+            if not enabled:
                 return
             if not self.client:
                 await message.reply("Beep boop! My circuits are offline — GROQ_API_KEY is missing.")
