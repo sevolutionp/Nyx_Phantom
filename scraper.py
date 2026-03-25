@@ -36,6 +36,16 @@ SKIP_TITLE_SUFFIXES = [
     "_(weapon)", "_(armor)", "_(item)", "_(loot)",
 ]
 
+# Skip Pre-CU and CU era content — Legends is NGE only
+SKIP_TITLE_KEYWORDS = [
+    "Pre-CU", "Pre_CU", "PreCU", "pre-cu", "pre_cu",
+    "Combat_Upgrade", "Combat_Update", "CU_era",
+    "_(Pre-CU)", "_(CU)", "_(pre-cu)", "_(cu)",
+    "Village_of_Aurilia",   # Pre-CU Jedi unlock system
+    "Jedi_Unlock",
+    "Holocron",             # Pre-CU Jedi mechanic
+]
+
 # Only follow links from these high-value categories
 ALLOWED_TITLE_KEYWORDS = [
     "Profession", "profession", "Class", "Skill", "skill",
@@ -50,6 +60,7 @@ ALLOWED_TITLE_KEYWORDS = [
     "Guide", "guide", "Tutorial", "tutorial",
     "Medic", "Officer", "Smuggler", "Bounty", "Commando", "Entertainer",
     "Spy", "Trader", "Beast", "Pilot", "Officer",
+    "NGE", "Legends", "legends",
     "Home",  # always include the homepage
 ]
 
@@ -62,6 +73,8 @@ def is_wiki_page(url: str) -> bool:
         return False
     title = get_title(url)
     if any(title.endswith(s) for s in SKIP_TITLE_SUFFIXES):
+        return False
+    if any(kw in title for kw in SKIP_TITLE_KEYWORDS):
         return False
     return True
 
@@ -103,6 +116,40 @@ def extract_links(html: str, visited: set) -> list[str]:
             links.add(full)
     return list(links)
 
+CONCURRENCY = 3   # parallel requests
+DELAY = 0.2       # seconds between each worker's requests
+
+async def fetch_page(client: httpx.AsyncClient, url: str, semaphore: asyncio.Semaphore,
+                     pages: list, visited: set, queue: list, lock: asyncio.Lock):
+    async with semaphore:
+        async with lock:
+            if url in visited:
+                return
+            visited.add(url)
+
+        title = get_title(url)
+        try:
+            resp = await client.get(url)
+            if resp.status_code != 200:
+                print(f"  [skip] HTTP {resp.status_code} — {title}")
+                return
+        except Exception as e:
+            print(f"  [skip] {e} — {title}")
+            return
+
+        result = parse_page(resp.text, url)
+        async with lock:
+            if result:
+                pages.append(result)
+                new_links = [l for l in extract_links(resp.text, visited) if is_high_value(l)]
+                queue.extend(new_links)
+                print(f"[{len(pages)}] {title} -> {len(new_links)} new links | queue: {len(queue)}")
+            else:
+                print(f"  [skip] no content — {title}")
+
+        await asyncio.sleep(DELAY)
+
+
 async def main():
     cf_clearance = os.getenv("CF_CLEARANCE")
     if not cf_clearance:
@@ -113,36 +160,22 @@ async def main():
     pages = []
     visited = set()
     queue = [START_URL]
+    semaphore = asyncio.Semaphore(CONCURRENCY)
+    lock = asyncio.Lock()
 
     async with httpx.AsyncClient(headers=HEADERS, cookies=cookies, follow_redirects=True, timeout=30) as client:
-        while queue:
-            url = queue.pop(0)
-            if url in visited:
-                continue
-            visited.add(url)
+        pending = set()
+        while queue or pending:
+            # fill up to CONCURRENCY tasks from queue
+            while queue and len(pending) < CONCURRENCY:
+                url = queue.pop(0)
+                task = asyncio.create_task(
+                    fetch_page(client, url, semaphore, pages, visited, queue, lock)
+                )
+                pending.add(task)
 
-            title = get_title(url)
-            print(f"[{len(pages)+1}] Scraping: {title}")
-
-            try:
-                resp = await client.get(url)
-                if resp.status_code != 200:
-                    print(f"  [skip] HTTP {resp.status_code}")
-                    continue
-            except Exception as e:
-                print(f"  [skip] {e}")
-                continue
-
-            result = parse_page(resp.text, url)
-            if result:
-                pages.append(result)
-                new_links = [l for l in extract_links(resp.text, visited) if is_high_value(l)]
-                queue.extend(new_links)
-                print(f"  -> {len(new_links)} new links | queue: {len(queue)}")
-            else:
-                print(f"  [skip] no content found")
-
-            await asyncio.sleep(0.5)  # polite delay
+            if pending:
+                done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
 
     OUTPUT_FILE.write_text(json.dumps(pages, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"\nDone! Scraped {len(pages)} pages -> {OUTPUT_FILE}")

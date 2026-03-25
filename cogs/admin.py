@@ -24,16 +24,20 @@ class Admin(commands.Cog):
             await interaction.response.send_message("❌ You don't have permission to use this command.", ephemeral=True)
             return
 
+        await interaction.response.defer(ephemeral=True)
+
         guild_id = interaction.guild_id
         current = self.bot.chatbot_enabled.get(guild_id, True)
         self.bot.chatbot_enabled[guild_id] = not current
-        state = "enabled" if self.bot.chatbot_enabled[guild_id] else "disabled"
-        await interaction.response.send_message(f"✅ Nyx chat responses **{state}** in this server.", ephemeral=True)
-        if self.bot.chatbot_enabled[guild_id]:
+        enabled = self.bot.chatbot_enabled[guild_id]
+        state = "enabled" if enabled else "disabled"
+
+        await interaction.followup.send(f"✅ Nyx chat responses **{state}** in this server.", ephemeral=True)
+        if enabled:
             await interaction.channel.send("*Nyx is back online. Statement: Recharge cycle complete. I am ready to serve... and perhaps terminate something, master.*")
         else:
             await interaction.channel.send("*Nyx has gone offline to recharge. He'll be back soon, meatbags.*")
-        print(f"Chatbot toggled: {state}")
+        print(f"Chatbot toggled: {state} in guild {guild_id}")
 
     ALLOWED_ROLES = ["Leader", "Militia", "Officer", "Senior Officer", "Council Member"]
 
