@@ -1,45 +1,20 @@
 # cogs/scheduler.py
 import discord
 from datetime import datetime, timezone
-from zoneinfo import ZoneInfo
 from discord.ext import commands
 import os
 from dotenv import load_dotenv
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-ET = ZoneInfo("America/New_York")
-PT = ZoneInfo("America/Los_Angeles")
-
-
-def _fmt_time(dt: datetime) -> str:
-    """Format a datetime as '7:00 PM' (no leading zero)."""
-    return dt.strftime("%I:%M %p").lstrip("0")
-
 
 def _event_countdown(event_hour_utc: int, event_min_utc: int = 0) -> str:
-    """Returns a countdown + ET/PT line for a scheduled event start time."""
+    """Returns a Discord Unix timestamp line that renders in each user's local time."""
     now = datetime.now(timezone.utc)
     event_utc = now.replace(hour=event_hour_utc, minute=event_min_utc, second=0, microsecond=0)
-    delta_secs = (event_utc - now).total_seconds()
-    et_str = _fmt_time(event_utc.astimezone(ET))
-    pt_str = _fmt_time(event_utc.astimezone(PT))
+    ts = int(event_utc.timestamp())
+    return f"⏱️ Starts <t:{ts}:R> · <t:{ts}:t>"
 
-    if delta_secs <= 60:
-        countdown = "**Starting NOW!**"
-    else:
-        h = int(delta_secs // 3600)
-        m = int((delta_secs % 3600) // 60)
-        parts = ([f"{h}h"] if h else []) + ([f"{m}m"] if m else [])
-        countdown = f"Starts in **{' '.join(parts)}**"
-
-    return f"⏱️ {countdown}\n🌎 **Eastern (FL):** {et_str}  |  🌊 **Pacific (CA):** {pt_str}"
-
-
-def _now_timezones() -> str:
-    """Returns the current UTC time expressed in ET and PT."""
-    now = datetime.now(timezone.utc)
-    return f"🌎 **Eastern (FL):** {_fmt_time(now.astimezone(ET))}  |  🌊 **Pacific (CA):** {_fmt_time(now.astimezone(PT))}"
 
 load_dotenv()
 TEST_CHANNEL_ID = int(os.getenv("TEST_CHANNEL_ID"))
@@ -123,15 +98,16 @@ class Scheduler(commands.Cog):
             args=["***Incoming Transmission from Squadron HQ, Crimson Hollow***", "Weapons Hot!", "Friday Night Fights are about to begin — rally in Deep Space!", discord.Color.dark_red(), "<:TieDefender:682583044783341570>", "images/abyssal_squadron_banner.jpg", 19, 0]
         )
 
-    async def send_scheduled_message(self, standard_message, title, message, color, emoji):
-        tz_line = _now_timezones()
+    async def send_scheduled_message(self, standard_message, title, message, color, emoji, event_hour_utc: int = None, event_min_utc: int = 0):
+        countdown = _event_countdown(event_hour_utc, event_min_utc) if event_hour_utc is not None else None
+        description = f"{message}\n\n{countdown}" if countdown else message
         for channel_id in [TEST_CHANNEL_ID, GUILD_CHANNEL_ID]:
             if not channel_id:
                 continue
             channel = self.bot.get_channel(channel_id)
             if channel:
                 await channel.send(standard_message)
-                embed = discord.Embed(title=title, description=f"{message}\n\n{tz_line}", color=color)
+                embed = discord.Embed(title=title, description=description, color=color)
                 embed.set_footer(text="📅 Scheduled Notification")
                 sent_message = await channel.send(embed=embed)
                 await sent_message.add_reaction(emoji)

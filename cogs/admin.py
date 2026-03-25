@@ -73,9 +73,11 @@ class Admin(commands.Cog):
         original_method_space = scheduler_cog.send_space_message
 
         async def _test_general(*args, **kwargs):
-            from cogs.scheduler import _now_timezones
-            _, title, message, color, emoji = args
-            embed = discord.Embed(title=title, description=f"{message}\n\n{_now_timezones()}", color=color)
+            from cogs.scheduler import _event_countdown
+            _, title, message, color, emoji, *event = args
+            tz_line = _event_countdown(event[0], event[1] if len(event) > 1 else 0) if event else None
+            description = f"{message}\n\n{tz_line}" if tz_line else message
+            embed = discord.Embed(title=title, description=description, color=color)
             embed.set_footer(text="📅 Scheduled Notification  [TEST]")
             sent = await interaction.channel.send(embed=embed)
             await sent.add_reaction(emoji)
@@ -95,16 +97,43 @@ class Admin(commands.Cog):
             )
             await sent.add_reaction(emoji)
 
+        TRANSMISSION = "***Incoming Transmission from Squadron HQ, Crimson Hollow***"
+        IMG = "images/abyssal_squadron_banner.jpg"
+        TIE = "<:TieDefender:682583044783341570>"
+
+        # --- Friday 15:30 general countdown (3h 30m to FNF) ---
         await _test_general(
-            "🚀 Motivation:", "Motivation Monday", "New week, new goals! Let's get started!",
-            discord.Color.blue(), "🚀"
+            "🎉 Reminder:", "Weekend Countdown",
+            "The weekend is almost here! Hang in there!",
+            discord.Color.purple(), "🎉", 19, 0
         )
+
+        # --- Tuesday 06:00 — Chewsday early warning (13h out) ---
         await _test_space(
-            "***Incoming Transmission from Squadron HQ, Crimson Hollow***",
-            "Happy Chewsday Pilots!",
+            TRANSMISSION, "Happy Chewsday Pilots!",
             "As a reminder, space PvP starts at 7PM UTC. Prepare to group up and head to Deep Space!",
-            discord.Color.dark_red(), "<:TieDefender:682583044783341570>",
-            "images/abyssal_squadron_banner.jpg", 19, 0
+            discord.Color.dark_red(), TIE, IMG, 19, 0
+        )
+
+        # --- Tuesday 15:00 — Chewsday 4h warning ---
+        await _test_space(
+            TRANSMISSION, "Chewsday Night PvP!",
+            "We're about to launch! Group up and head to Deep Space!",
+            discord.Color.dark_red(), TIE, IMG, 19, 0
+        )
+
+        # --- Friday 10:00 — FNF 9h warning ---
+        await _test_space(
+            TRANSMISSION, "Friday Night Fights Incoming!",
+            "US pilots! PvP kicks off tonight at 7PM UTC — prepare for deployment!",
+            discord.Color.dark_red(), TIE, IMG, 19, 0
+        )
+
+        # --- Friday 19:00 — FNF launch (Starting NOW) ---
+        await _test_space(
+            TRANSMISSION, "Weapons Hot!",
+            "Friday Night Fights are about to begin — rally in Deep Space!",
+            discord.Color.dark_red(), TIE, IMG, 19, 0
         )
 
     @app_commands.command(name="reload", description="Reload scheduler cog (Owner & Leadership Roles Only)")
